@@ -1,6 +1,8 @@
-import mutils
-from rmidi import MIDI
-import rmidi
+# import rmidi.mutils
+from rmidi.MIDI import MIDI
+from rmidi import mutils
+from polymuse.dataset import piano_roll
+import polymuse.net.rnn
 import numpy, random
 
 '''
@@ -8,6 +10,8 @@ MIDI Object Testinh
 '''
 
 import os
+
+print(MIDI)
 
 y = MIDI.parse_midi('./midis/Believer_-_Imagine_Dragons.mid')
 
@@ -70,31 +74,26 @@ Testing the set_tempo of MIDI
 
 # x.compress('tempo_change')
 
+'''
+nth note
+'''
+# fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
+# mid = MIDI.parse_midi(fi)    
+# m = AbsoluteMidi.to_abs_midi(mid)
+# print(m.tempo)
+# t = mutils.nth_note(19.98905, m.tempo)
 
-"""
-Sieve Erothenes 
-"""
+'''
+piano roll testing
+'''
+fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
+mid = MIDI.parse_midi(fi) 
+numpy.set_printoptions(threshold=200)
 
-# import numpy, math
-# def such(n):
-#     nums = numpy.zeros(1000000, dtype = numpy.int32)
-#     primes = [2]
-#     i = 0
-#     while primes[i] < math.sqrt(1000000) :
-#         for j in range( primes[i], 1000000, primes[i]):
-#             if nums[j] == 0:  nums[j] = primes[i]
-#         for j in range(primes[i] + 1, 2 * primes[i]):
-#             if nums[j] == 0:
-#                 primes.append(j)
-#                 break
-#         i += 1
-#     nums
-#     return nums
+roll = piano_roll.PianoRoll(mid)
 
-# a = such(10)
-# unique, counts = numpy.unique(a, return_counts=True)
-# dct = dict(zip(unique, counts))
-# n = 11
-# pp = dct[n]
-
-# print(pp)
+roll_mat = roll.pianoroll(note_range=[48, 72], track_range = 1)
+st = roll.to_str()
+print(st)
+print(roll_mat.shape)
+1 == 0

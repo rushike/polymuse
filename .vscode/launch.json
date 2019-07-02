@@ -9,7 +9,7 @@
             "name": "Testing RMIDI",
             "type": "python",
             "request": "launch",
-            "program": "F:\\rushikesh\\project\\polymuse\\rmidi\\test.py",
+            "program": "F:\\rushikesh\\project\\polymuse\\test.py",
             "console": "integratedTerminal"
         }
 
