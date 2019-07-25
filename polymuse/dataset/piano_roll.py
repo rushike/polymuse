@@ -8,7 +8,35 @@ from rmidi.constant import meta_event_format
 import numpy
 
 
+"""
+Pianoroll 
+
+Each track, track in shape[0]
+
+Note number. note in shape[1]
+
+Temporal, time / ticks in shape[2]
+        T I M E  
+      _________________>  shape[2]
+     |
+  N  |
+  O  |
+  T  |
+  E  |
+    \_/
+  shape[1]
+
+
+More on temporal dimension than of note side
+
+Data prepare assumes 4 measure prev input for note pridiction
+
+Returns:
+    [PianoRoll] -- midi pianoroll representation object
+"""
+
 class PianoRoll:
+    
     def __init__(self, midi, print_threshold = 25):
         self.midi = midi
         self.print_threshold = print_threshold
@@ -64,6 +92,78 @@ class PianoRoll:
         self.roll = res_set
         return res_set
 
+
+    def prepare_data(self, ip_memory = 25):
+        """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
+        With so callled vocab_size of ip_memory
+
+        Assuming the pianoroll return roll with 32th note accuracy, i.e 1 / 32 of whole note   ....... need to confirm
+        
+        Keyword Arguments:
+            ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
+        """
+        notes = self.pianoroll()
+        # print(self.to_str())
+        data_in, data_out = [], []
+        tracks, notes_n, timediv = notes.shape
+        for t in range(tracks):
+            le = timediv
+            chunks_count = le // ip_memory + 1
+            for i in range(chunks_count):
+                start, end = i * ip_memory , (i + 1) * ip_memory
+                buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
+                buffer = numpy.zeros((128, ip_memory))
+                buffer[:, :buf_size] = notes[t][:, start : start + buf_size]
+                data_in.append(buffer)
+                data_out.append((notes[t, :, end] if end < le else numpy.zeros((128))))
+
+        # print(data_in)
+        # print(data_out)
+        return numpy.array(data_in), numpy.array(data_out)
+
+    @staticmethod
+    def to_midi(pianoroll): 
+        """Converts the pianoroll representation to midi object
+        
+        Arguments:
+            pianoroll {[type]} -- [description]
+        """
+        if type(pianoroll) == PianoRoll: pianoroll = pianoroll.roll
+        
+        track, notes_n, time_n = pianoroll.shape
+
+        mid = MIDI(track_count = track, empty = False) # Creating the empty MIDI object
+        on_note_set = set()
+        for t in range(track): # Iteratinf 0th axis, to specific track
+            delta_time = 0
+            for tim in range(1, time_n): # First iterating the 2 axis before 1nd, due to algo nature
+                first_bool = True
+                for nt in range(notes_n): #Iterating note axis  
+                    if first_bool and pianoroll[t, nt, tim] == 1 and pianoroll[t, nt, tim - 1] == 0: # pushing the first note with delta time == delta_time var, in that time slice which is on in current instance
+                        # if nt not in on_note_set:
+                        #     on_note_set.add(nt)
+                        #     mid.tracks[t].push_note(delta_time, nt, intensity = 0x50)
+                        #     pass
+                        # else:
+                        #     pass
+                        mid.tracks[t].push_note(delta_time, nt, channel_no = 0, intensity = 0x50)
+                        delta_time = 0 #setting delta time(relative time) to zero
+                        first_bool = False
+                    elif pianoroll[t, nt, tim] == 1  and pianoroll[t, nt, tim - 1] == 0: # pushing other than first note with deltatime 0
+                        mid.tracks[t].push_note(0, nt, channel_no = 0, intensity = 0x50)
+                    elif pianoroll[t, nt, tim] == 0 and pianoroll[t, nt, tim - 1] == 1: #closing note trigger, closing the note
+                        mid.tracks[t].close_note(0, nt, channel_no = 0)
+
+                    else: #do nothing pass
+                        pass
+
+                delta_time += 32 # Incrementing delta count, as if no first note instance played
+
+
+        pass
+
+        return mid
+
     def to_str(self, res = None):
         try:
             p_str = ""
@@ -99,6 +199,15 @@ class PianoRoll:
                 p_str += "************************ NEW TRACK ***************************************************** NEW TRACK **************************************************************\n"
             return p_str
         except Exception: return None
+
+class CPianoRoll:
+    def __init__(self, midi, octave, offset = 4, print_threshold = 25):
+        self.midi = midi
+        self.octave = octave
+        self.offset = offset
+        self.print_threshold = print_threshold
+
             
 
-         
+        def cpiano_roll(self):
+            pass
