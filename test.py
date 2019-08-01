@@ -2,8 +2,10 @@
 from rmidi.MIDI import MIDI
 from rmidi import mutils
 from polymuse.dataset import piano_roll, constants
-from polymuse.dataset import flat, sflat
+from polymuse.dataset import flat, sflat, piano_sflat
 # from polymuse.player import rnn_player
+
+# from sklearn.model_selection import train_test_split
 
 # from polymuse.deep_net import rnn
 # import polymuse.net.rnn
@@ -120,15 +122,29 @@ flat roll, notes, time testing
 sFlat Roll : Build
 
 """
-fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
-mid = MIDI.parse_midi(fi) 
-# numpy.set_printoptions(threshold=200)
+# fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
+# mid = MIDI.parse_midi(fi) 
+# # numpy.set_printoptions(threshold=200)
 
-roll =  sflat.sFlat(mid, print_threshold = 25)
+# roll =  sflat.sFlat(mid, print_threshold = 1125)
 
-res = roll.flat_notes()
+# res = roll.flat_notes()
 
-print(roll.to_str(res))
+# mx = 0
+# ct = 0
+# for vs in res[1]:
+#     for j in range(5):
+#         if vs[j] != 0:
+#             ct += 1
+#         else:
+#             mx = mx if ct < mx else ct
+#             ct = 0
+#             break
+
+
+
+# print(roll.to_str(res, track_range = [1, 2]))
+# print(mx)
 
 """
 Data preparation
@@ -136,27 +152,41 @@ Data preparation
 # fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
 # mid = MIDI.parse_midi(fi) 
 # numpy.set_printoptions(threshold=200)
-# roll = flat.Flat(mid, print_threshold = 2000)
+# roll = sflat.sFlat(mid, print_threshold = 20)
 
-# roll.prepare_data()
+# x, y = roll.prepare_data()
 
+# print(x, "-------------------------------------------------------\n", y)
+
+# print(x.shape, y.shape)
 
 """
 built a demo model, working on
 """
-# fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
-# mid = MIDI.parse_midi(fi) 
-# numpy.set_printoptions(threshold=sys.maxsize)
-# # print(roll.to_str())
-# # roll = flat.Flat(mid, print_threshold = 2000)
-# roll = piano_roll.PianoRoll(mid, print_threshold=25)
+fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
+mid = MIDI.parse_midi(fi) 
+numpy.set_printoptions(threshold=50)
+# print(roll.to_str())
+# roll = flat.Flat(mid, print_threshold = 2000)
+roll = piano_sflat.Piano_sFlat(mid, print_threshold=25)
 
-# roll_mat = roll.pianoroll()
+roll_mat = roll.flat_pianoroll()
 # st = roll.to_str()
-# # print(st)
-
+# print(st)
+# pt = roll_mat[:, :50]
+print(roll_mat)
+print(roll_mat.shape)
 # x, y = roll.prepare_data()
-# print(x.shape)
+
+
+# # x, xte, y, yte = train_test_split(x, y, test_size = 0.01, random_state = 97)
+
+# # x, y = x / 128, y /128
+
+# print(x, y)
+# # # print(numpy.shape(pt))
+# # print(roll_mat.shape)
+# print(x.shape, y.shape)
 # # st = "["
 # # for tm in range(25):
 # #     st += "[" 
@@ -170,25 +200,35 @@ built a demo model, working on
 # # st += "]"
 
 # # print(st)
-# # model_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_model_rnn_sample_1_batch_15_epochs_100"
+# # model_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_m s_flat_init__b_30_e_500" #model path
 # # inp = [constants.believer_start]
 # # inp = numpy.array(inp)
 # # # print(inp)
-
+# epochs = 200
+# batch_size = 20
+# dropout = 0.5
+# cell_count = 512
+# model = rnn.built_demo_flat_model(x, y, 's_flat_',cell_count = cell_count, epochs = epochs, batch_size = batch_size, dropout = dropout)
 
 # # p = rnn.predict(model_path, inp)
 
-# res = rnn_player.play(predict_instances = 1000)
+# res = rnn_player.play(x[0] , model, predict_instances = 1000)
+# res = res * 128 
+# # print(res)
+# # print(res.shape)
 
-# print(res)
-# print(res.shape)
+# # mid = piano_roll.PianoRoll.to_midi(res)
+# mid = sflat.sFlat.to_midi(res)
 
-# mid = piano_roll.PianoRoll.to_midi(res)
 
-# mid.create_file("test_nayan.mid")
-# # rnn.built_demo_model(x, y)
+
+# mid.create_file("test_nyn_ex_" + cell_count + "_e_"  + str(epochs) + "_b " + str(batch_size) + "_d_"+ str(dropout) + ".mid")
 # # 
 
 
 
 1 == 0
+
+
+"""NOTE e = 200, b = 10, d = 1.0 ......... very bad results
+"""

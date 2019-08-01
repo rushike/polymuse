@@ -5,7 +5,9 @@ from rmidi.constant import converter
 from rmidi.dataset import config
 from rmidi.constant import meta_event_format
 
-import numpy
+from polymuse.dataset.constants import ZEROS_FIVE, NOTE_LENGTH 
+
+import numpy, random
 
 
 """
@@ -27,7 +29,7 @@ Returns:
     [sFlat] -- sFlat object
 """
 
-class sFlat:
+class sFlat():
 
     def __init__(self, midi, print_threshold = 25):
         self.midi = midi
@@ -49,7 +51,7 @@ class sFlat:
         
         self.track_range = [0, self.midi.track_count] if not track_range else track_range if not numpy.isscalar(track_range) else [track_range - 1, track_range]
 
-        LEN = 4800
+        LEN = 1000
         
         trackers = numpy.zeros(self.midi.track_count)
         track_anas = meta_event_format.X
@@ -83,7 +85,9 @@ class sFlat:
             """
             nit = 0 #numpy array iterator
             prev_oucr, dut, dep  = -1, 0, 0
+            dep = 0
             for e in t.trk_event:
+                
                 if e.is_note_on_off_event():
                     noteval = e.data[0] 
                     # res_set[i][tp] = noteval
@@ -106,12 +110,24 @@ class sFlat:
 
         self.roll = res_set
     
-        if False:
+        if trim:
             res_set_list = []
             for i in range(res_set.shape[0]):
-                res_set_list.append(numpy.trim_zeros(res_set[i], 'b'))
-            return res_set_list
+                booln = False
+                res_set_trk_list = []
+                for n in range(res_set.shape[1]):
+                    if numpy.array_equal(res_set[i][n], ZEROS_FIVE) and booln: continue
+                    # res_nt = [0, 0, 0, 0, 0]
+                    # for j in range(res_set.shape[2]):
+                    #     res_nt[j] = res_set[i][n][j]
+                    res_set_trk_list.append(list(res_set[i][n]))
+                    booln = True
+                res_set_list.append(res_set_trk_list)
+            MX = max([len(l) for l in res_set_list])
+
+            return to_numpy_array_from_3D_list(res_set_list, [res_set.shape[0] , MX, 5])
         return res_set
+
 
     def flat_time(self):
 
@@ -179,22 +195,72 @@ class sFlat:
             for i in range(chunks_count):
                 start, end = i * ip_memory , (i + 1) * ip_memory
                 buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
-                buffer = numpy.zeros(ip_memory)
-                buffer[:buf_size] = t[start : start + buf_size]
+                buffer = numpy.zeros((ip_memory, self.__DEPTH__))
+                buffer[:buf_size, :] = t[start : start + buf_size]
                 data_in.append(buffer)
-                data_out.append(([t[end]] if end < le else [0]))
-
-        print(data_in)
-        print(data_out)
+                # print(t[end])
+                data_out.append((t[end] if end < le else notes[0][0]))
+        # print(data_in)
+        # print(data_out)
         return numpy.array(data_in), numpy.array(data_out)
         
+    @staticmethod
+    def to_midi(sflatroll): 
+        """Converts the pianoroll representation to midi object
+        
+        Arguments:
+            sflatroll {ndarray} -- sflat ndarray format as describe above
+        """
+        if type(sflatroll) == sFlat: sflatroll = sflatroll.roll
+        
+        track, time_n, notes_depth = sflatroll.shape
 
-    def to_str(self, res = None):
-        res = res if len(res) != 0 else self.roll
+        mid = MIDI(track_count = track, empty = False) # Creating the empty MIDI object
+        on_note_set = set()
+        for t in range(track): # Iteratinf 0th axis, to specific track
+            delta_time = 0
+            for tim in range(1, time_n): # First iterating the 2 axis before 1nd, due to algo nature
+                first_bool = True
+                n_length = random.choice(NOTE_LENGTH)
+                for nt in range(notes_depth): #Iterating on note axis and pushing the event 
+                    noteval = int(sflatroll[t][tim][nt])
+                    if noteval == 0: break
+                    mid.tracks[t].push_note(n_length, noteval)
+                    n_length = 0
+                    # if first_bool and sflatroll[t, nt, tim] == 1 and sflatroll[t, nt, tim - 1] == 0: # pushing the first note with delta time == delta_time var, in that time slice which is on in current instance
+                        
+                    #     mid.tracks[t].push_note(delta_time, nt, channel_no = 0, intensity = 0x50)
+                    #     delta_time = 0 #setting delta time(relative time) to zero
+                    #     first_bool = False
+                    # elif pianoroll[t, nt, tim] == 1  and pianoroll[t, nt, tim - 1] == 0: # pushing other than first note with deltatime 0
+                    #     mid.tracks[t].push_note(0, nt, channel_no = 0, intensity = 0x50)
+                    # elif pianoroll[t, nt, tim] == 0 and pianoroll[t, nt, tim - 1] == 1: #closing note trigger, closing the note
+                    #     mid.tracks[t].close_note(0, nt, channel_no = 0)
+
+                    # else: #do nothing pass
+                    #     pass
+
+                for nt in range(notes_depth): #Iterating on note axis and closing the event 
+                    noteval = int(sflatroll[t][tim][nt])
+                    if noteval == 0: break
+                    mid.tracks[t].close_note(0, noteval, 0)
+                
+                # delta_time += 32 # Incrementing delta count, as if no first note instance played
+
+
+        pass
+
+        return mid
+
+
+
+    def to_str(self, res = None, track_range = None):
+        res = res if res != 0 else self.roll
+        track_range = track_range if track_range else self.track_range
         try:
             p_str = ""
             tracks, intervals, depth = numpy.shape(res)
-            for t in range(self.track_range[0], self.track_range[1]):
+            for t in range(track_range[0], track_range[1]):
                     # p_str += "%3s : " % mutils.midi_to_note(n + self.note_range[0])
                 for i in  range(self.print_threshold):
                     # if self.flat_roll[t][i] == 1:
@@ -224,3 +290,17 @@ class sFlat:
                 p_str += "************************ NEW TRACK ***************************************************** NEW TRACK **************************************************************\n"
             return p_str
         except Exception: return None
+
+def to_numpy_array_from_3D_list(listn, shape = [3, 1000, 5], depth = 1):
+    # if depth == 0:
+    # le = len(listn)
+    print(shape)
+    res = numpy.zeros(shape)
+    for i in range(shape[0]):
+        le = len(listn[i])
+        for j in range(shape[1]):
+            if j >= le: break
+            for k in range(shape[2]):    
+                res[i, j , k] = listn[i][j][k]
+
+    return res

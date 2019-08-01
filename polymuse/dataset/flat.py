@@ -142,12 +142,13 @@ class Flat:
         return numpy.array(data_in), numpy.array(data_out)
         
 
-    def to_str(self, res = None):
+    def to_str(self, res = None, track_range = None):
         res = res
+        track_range = track_range if track_range else self.track_range
         try:
             p_str = ""
             tracks, intervals = numpy.shape(self.flat_roll)
-            for t in range(self.track_range[0], self.track_range[1]):
+            for t in range(track_range[0], track_range[1]):
                     # p_str += "%3s : " % mutils.midi_to_note(n + self.note_range[0])
                 for i in  range(self.print_threshold):
                     # if self.flat_roll[t][i] == 1:
