@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import  numpy, datetime, json
 # import keras.backend 
 # from keras.model import Sequential
@@ -5,6 +6,13 @@ from keras.models import Sequential, load_model
 from keras.optimizers import SGD
 from keras.layers import LSTM, Dropout, Dense, Activation, CuDNNLSTM, TimeDistributed, Flatten
 from keras.callbacks import ModelCheckpoint
+=======
+import  numpy, datetime
+# import keras.backend 
+# from keras.model import Sequential
+from keras.models import Sequential, load_model
+from keras.layers import LSTM, Dropout, Dense, Activation, CuDNNLSTM
+>>>>>>> 99b8fa35ad113cfeb9dbac32493668e19806f20d
 # import polymuse.dataset.flat as flatter
 
 def get_model():
@@ -25,6 +33,7 @@ def get_model():
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
 
+<<<<<<< HEAD
 
 def built_demo_flat_model(x, y, model_name, IP = None, OP = None, cell_count = 256, epochs = 200, batch_size = 25, dropout = .5 ):
     ip_memory = x.shape[1]
@@ -67,11 +76,50 @@ def built_demo_flat_model(x, y, model_name, IP = None, OP = None, cell_count = 2
     # model.add(Dropout(dropout))
     
     model.add(Dense(numpy.prod(IP[2:])))
+=======
+# def built_demo_model(x, y):
+
+#     ip_memory = x.shape[1]
+#     print(x)
+#     print(y)
+#     model = Sequential()
+#     model.add(CuDNNLSTM(128, return_sequences=True, input_shape=(x.shape[1:])))
+#     model.add(Dropout(0.2))
+#     model.add(CuDNNLSTM(128, return_sequences=False))
+#     model.add(Dropout(0.2))
+#     model.add(Dense(128))
+#     model.add(Activation('softmax'))
+
+#     model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
+#     batch_size = 30
+#     epochs = 500
+#     history = model.fit(x, y, batch_size=batch_size, nb_epoch=epochs)
+#     model.save('./polymuse/deep_net/history/gpu_model_rnn_sample_1_batch_' + str(batch_size) + "_epochs_"+str(epochs))
+#     numpy.save('./polymuse/deep_net/history/gpu_history_rnn_sample_1__batch_' + str(batch_size) + "_epochs_"+str(epochs), history.history)
+#     1 == 0
+#     return model
+
+def built_demo_flat_model(x, y, model_name, cell_count = 256, epochs = 200, batch_size = 25, dropout = .5 ):
+    ip_memory = x.shape[1]
+    # print(x)
+    # print(y)
+    IP = x.shape[1:]
+    OP = y.shape[1]
+
+    model = Sequential()
+    model.add(CuDNNLSTM(cell_count, return_sequences=True, input_shape=(IP)))
+    model.add(Dropout(dropout))
+    model.add(CuDNNLSTM(cell_count, return_sequences=False))
+    model.add(Dropout(dropout))
+    
+    model.add(Dense(OP))
+>>>>>>> 99b8fa35ad113cfeb9dbac32493668e19806f20d
     model.add(Activation('softmax'))
 
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['acc'])
     # batch_size = 30 if not batch_size else batch_size
     # epochs = 500 if not epochs else epochs
+<<<<<<< HEAD
     
     history = model.fit(x, y, validation_split = 0.1, batch_size=batch_size,  nb_epoch=epochs)
     print("history keys : " , history.history.keys())
@@ -82,6 +130,11 @@ def built_demo_flat_model(x, y, model_name, IP = None, OP = None, cell_count = 2
     f = './polymuse/hist/gpu_h_ex' + str(cell_count)+ '_m_' + model_name+'__b_' + str(batch_size) + "_e_"+str(epochs) + "_d_" + str(dropout) + ".json"
     with open(f, 'w') as json_file:
         json.dump(history.history, json_file)
+=======
+    history = model.fit(x, y, batch_size=batch_size, nb_epoch=epochs)
+    model.save('./polymuse/deep_net/history/gpu_ex_' +  cell_count + '_m_' + model_name +'__b_' + str(batch_size) + "_e_"+str(epochs) + "_d_" + str(dropout)  + ".h5")
+    numpy.save('./polymuse/deep_net/history/gpu_h_ex' + cell_count+ '_m_' + model_name+'__b_' + str(batch_size) + "_e_"+str(epochs) + "_d_" + str(dropout) + ".hist", history.history )
+>>>>>>> 99b8fa35ad113cfeb9dbac32493668e19806f20d
     1 == 0
     return model
 
@@ -89,6 +142,7 @@ def load(model):
     if type(model) == str: return load_model(model)
 
 def predict(model, x):
+<<<<<<< HEAD
     IP = x.shape
     # print(x.shape)
     sh = [1]
@@ -200,3 +254,8 @@ def time_model_sFlat(x, y, model_name, IP = None, OP = None, cell_count = 256, e
 
     
     """
+=======
+    
+    # print(x.shape)
+    return model.predict(x, verbose = 0) 
+>>>>>>> 99b8fa35ad113cfeb9dbac32493668e19806f20d
