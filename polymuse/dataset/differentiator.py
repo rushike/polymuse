@@ -1,7 +1,16 @@
 
+<<<<<<< HEAD
 import numpy
 
 
+=======
+<<<<<<< HEAD
+import numpy
+
+
+=======
+>>>>>>> 99b8fa35ad113cfeb9dbac32493668e19806f20d
+>>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
 """
 
  1
@@ -44,6 +53,10 @@ General f^{n}_{r} = (-1) ^ r  ^{n}C_{r}    ...  0 <= r <= n
 
 where f^{n} is derivative polynomial
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
 """
 
 """
@@ -65,4 +78,11 @@ def first_derivative(roll_mat, axis = 1):
                 if roll_mat[j, i, k] == 0 or roll_mat[j, i - 1, k] == 0: break
                 res_set[j, i, k]  = last[k] - roll_mat[j, i - 1, k]
             
+<<<<<<< HEAD
     return res_set
+=======
+    return res_set
+=======
+"""
+>>>>>>> 99b8fa35ad113cfeb9dbac32493668e19806f20d
+>>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
