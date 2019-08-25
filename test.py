@@ -2,15 +2,17 @@
 from rmidi.MIDI import MIDI
 from rmidi import mutils
 from polymuse.dataset import piano_roll, constants
-from polymuse.dataset import flat, sflat, piano_sflat
-# from polymuse.player import rnn_player
+from polymuse.dataset import flat, sflat, piano_sflat, dutils
+from polymuse.player import rnn_player
 
 # from sklearn.model_selection import train_test_split
 
-# from polymuse.deep_net import rnn
+from polymuse.deep_net import rnn
 # import polymuse.net.rnn
-import numpy, random, sys
-
+import polymuse.dataset.differentiator as delv
+import polymuse.dataset.integrate as intg
+import numpy, random, sys, json
+import matplotlib.pyplot as plt
 '''
 MIDI Object Testinh
 '''
@@ -160,75 +162,178 @@ Data preparation
 
 # print(x.shape, y.shape)
 
+
+"""
+Dataset making
+"""
+
+# fi = ['F:\\rushikesh\\project\\dataset\\lakh_dataset\\AlbertHammond\\ItNeverRainsInSouthernCalifornia.1.mid', '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid', 'F:\\rushikesh\\project\dataset\\lakh_dataset\\B.W.Stevenson\\My_Maria.mid' ]
+
+# fi = ['..\\dataset\\midi_gen\\dataset.mid']
+
+# arr = []
+# for i, f in enumerate(fi):
+#     print(i)
+#     mid = MIDI.parse_midi(f)
+#     roll = sflat.sFlat(mid, print_threshold = 2000)
+#     # roll = piano_sflat.Piano_sFlat(mid, print_threshold=25)
+#     roll_mat = roll.flat_notes()
+#     arr.extend(list(roll_mat[0]))
+
+# arr = numpy.array(arr)
+
+# print(arr, arr.shape)
+
+# numpy.save('F:\\rushikesh\\project\\polymuse\\midis\\datset_3', arr)
+
 """
 built a demo model, working on
 """
-fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
-mid = MIDI.parse_midi(fi) 
-numpy.set_printoptions(threshold=50)
-# print(roll.to_str())
-# roll = flat.Flat(mid, print_threshold = 2000)
-roll = piano_sflat.Piano_sFlat(mid, print_threshold=25)
+# fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
+# mid = MIDI.parse_midi(fi) 
+# numpy.set_printoptions(threshold=1000)
 
-roll_mat = roll.flat_pianoroll()
-# st = roll.to_str()
-# print(st)
-# pt = roll_mat[:, :50]
-print(roll_mat)
-print(roll_mat.shape)
-# x, y = roll.prepare_data()
+# roll = sflat.sFlat(mid, print_threshold = 2000)
+
+# roll_mat = roll.flat_notes()
+
+# dataset = numpy.load('F:\\rushikesh\\project\\polymuse\\midis\\datset_3.npy')
+
+# dataset = numpy.array([dataset])
+
+# dataset = dutils.to_3D_bin(dataset, 8)
+# print(dataset.shape)
+# dataset = dataset[:, :, : 1]
+# sflat.sFlat.__DEPTH__ = 1
 
 
-# # x, xte, y, yte = train_test_split(x, y, test_size = 0.01, random_state = 97)
+# x, y = sflat.sFlat.prepare_data_3D(notes = dataset, ip_memory = 100)
 
-# # x, y = x / 128, y /128
-
-# print(x, y)
-# # # print(numpy.shape(pt))
-# # print(roll_mat.shape)
 # print(x.shape, y.shape)
-# # st = "["
-# # for tm in range(25):
-# #     st += "[" 
-# #     for n in range(128):
-# #         if x[8][n][tm] == 1 :
-# #              st += "-----, "
-# #              continue
 
-# #         st += (str(x[8][n][tm]) + ", ")
-# #     st += "],\n"
-# # st += "]"
+# model_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_ex_512_m_one_note_100___b_30_e_50_d_0.3.h5" #model path
 
-# # print(st)
-# # model_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_m s_flat_init__b_30_e_500" #model path
-# # inp = [constants.believer_start]
-# # inp = numpy.array(inp)
-# # # print(inp)
-# epochs = 200
-# batch_size = 20
-# dropout = 0.5
+# epochs = 50
+
+# batch_size = 30
+# dropout = 0.3
 # cell_count = 512
-# model = rnn.built_demo_flat_model(x, y, 's_flat_',cell_count = cell_count, epochs = epochs, batch_size = batch_size, dropout = dropout)
 
-# # p = rnn.predict(model_path, inp)
+# model_name = 'one_note_100_'
 
-# res = rnn_player.play(x[0] , model, predict_instances = 1000)
-# res = res * 128 
-# # print(res)
-# # print(res.shape)
 
-# # mid = piano_roll.PianoRoll.to_midi(res)
+
+# # model = rnn.built_demo_flat_model(x, y, model_name,cell_count = cell_count, epochs = epochs, batch_size = batch_size, dropout = dropout)
+# # model = rnn.time_model_sFlat(x, y, model_name, cell_count = cell_count, epochs = epochs, batch_size = batch_size, dropout = dropout)
+# model = rnn.load(model_path)
+
+# res = rnn_player.rsingle_play(x[0] , model, y, predict_instances = 1000)
+
+
+
+# res = numpy.round(res)
+
+# res = dutils.rev_bin_3D(res, 8)
+
+# print(res.shape)
+# numpy.save('roll.np', res)
+
 # mid = sflat.sFlat.to_midi(res)
+# y = res[0, :, 0]
+# le = numpy.trim_zeros(y).shape[0]
+
+# print(mid.track_count)
+
+# mid.create_file(model_name + "2_ex_" + str(cell_count) + "_e_"  + str(epochs) + "_b " + str(batch_size) + "_d_"+ str(dropout) + ".mid")
+# # # 
 
 
 
-# mid.create_file("test_nyn_ex_" + cell_count + "_e_"  + str(epochs) + "_b " + str(batch_size) + "_d_"+ str(dropout) + ".mid")
-# # 
-
-
-
-1 == 0
-
+# 1 == 0
 
 """NOTE e = 200, b = 10, d = 1.0 ......... very bad results
+
 """
+
+
+"""
+Built model for time : 
+"""
+
+fi = '..\\dataset\\midi_gen\\Believer_Imagine_Dragons.mid'
+mid = MIDI.parse_midi(fi) 
+numpy.set_printoptions(threshold=1000)
+
+roll = sflat.sFlat(mid, print_threshold = 2000)
+
+roll_mat = roll.flat_time()
+xn = roll.flat_notes()
+# dataset = numpy.load('F:\\rushikesh\\project\\polymuse\\midis\\datset_3.npy')
+dataset = roll_mat
+# dataset = numpy.array([dataset])
+
+dataset = dutils.to_3D_bin(dataset, 6)
+xn = dutils.to_3D_bin(xn, 8)
+# print(dataset)
+print(dataset.shape)
+dataset = dataset[:, :, :1]
+xn = xn[:, :, :1]
+xn = numpy.zeros(xn.shape)
+sflat.sFlat.__DEPTH__ = 1
+
+
+x, y = sflat.sFlat.prepare_data_time(notes = dataset, ip_memory = 100)
+x_notes, y_notes = sflat.sFlat.prepare_data_3D(notes = xn, ip_memory = 100)
+# print(x,'\n', y)
+print(x.shape, y.shape)
+
+model_notes_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_ex_512_m_one_note_100___b_30_e_50_d_0.3.h5" #model path
+model_time_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_time_512_m_one_time_100___b_30_e_50_d_0.6.h5"
+epochs = 50
+
+batch_size = 30
+dropout = 0.6
+cell_count = 512
+
+model_name = 'one_time_100_'
+
+model_path = './polymuse/deep_net/history/gpu_time_' +  str(cell_count) + '_m_' + model_name +'__b_' + str(batch_size) + "_e_"+str(epochs) + "_d_" + str(dropout)  + ".h5"
+
+# model = rnn.time_model_sFlat(x, y, model_name, cell_count = cell_count, epochs = epochs, batch_size = batch_size, dropout = dropout)
+
+model_notes_path = rnn.load(model_notes_path)
+# model_time_path = model
+model_time_path = rnn.load(model_time_path)
+
+res_notes, res_time = rnn_player.rsingle_note_time_play(x_notes[0], x[0], model_notes_path, model_time_path, y_notes, y, predict_instances = 300)
+
+print("OUT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+print("time_output shape : ", res_time.shape)
+res_notes = dutils.rev_bin_3D(res_notes, 8)
+
+res_time = dutils.rev_bin_3D(res_time, 6)
+
+print("RES_NOTES SHAPE : ", res_notes.shape)
+print("RES_TIME SHAPE : ", res_time.shape)
+
+print('RES NOTES ---------------------------------------------\n', res_notes[0, 95 : 145])
+
+print('RES TIME ---------------------------------------------\n', res_time[0, 95 : 145])
+
+# res = numpy.round(res)
+
+# res = dutils.rev_bin_3D(res, 8)
+
+print(res_notes.shape)
+numpy.save('roll.np', [res_notes, res_time])
+
+mid = sflat.sFlat.to_midi(res_notes, res_time)
+# y = res[0, :, 0]
+# le = numpy.trim_zeros(y).shape[0]
+
+print(mid.track_count)
+
+mid.create_file(model_name + "2_ex_" + str(cell_count) + "_e_"  + str(epochs) + "_b " + str(batch_size) + "_d_"+ str(dropout) + ".mid")
+# # # 
+
+

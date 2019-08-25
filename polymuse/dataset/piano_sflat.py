@@ -6,8 +6,9 @@ from rmidi.dataset import config
 from rmidi.constant import meta_event_format
 
 from polymuse.dataset.constants import ZEROS_FIVE, NOTE_LENGTH 
+from polymuse.dataset import dutils 
 
-import numpy, random
+import numpy, random, copy
 
 
 """
@@ -24,7 +25,7 @@ class Piano_sFlat:
         self.track_range = None
         self.__DEPTH__ = 5
 
-    def flat_pianoroll(self, note_range = None, track_range = None):
+    def flat_pianoroll(self, note_range = None, track_range = None, trim = True):
         """min timespan of roll 32nd note
         
         Keyword Arguments:
@@ -97,28 +98,23 @@ class Piano_sFlat:
                     nit += dut
         self.roll = res_set
 
-        raise NotImplementedError("Piano_sFlat.flat_pianoroll not implemented yet.")
         if trim:
             res_set_list = []
             for i in range(res_set.shape[0]):
-                booln = False
                 res_set_trk_list = []
                 for n in range(res_set.shape[1]):
-                    if numpy.array_equal(res_set[i][n], ZEROS_FIVE) and booln: continue
-                    # res_nt = [0, 0, 0, 0, 0]
-                    # for j in range(res_set.shape[2]):
-                    #     res_nt[j] = res_set[i][n][j]
-                    res_set_trk_list.append(list(res_set[i][n]))
-                    booln = True
+                    if numpy.any(res_set[i, n]):
+                        res_set_trk_list.append(list(res_set[i][n]))
+
                 res_set_list.append(res_set_trk_list)
             MX = max([len(l) for l in res_set_list])
 
-            return to_numpy_array_from_3D_list(res_set_list, [res_set.shape[0] , MX, 5])
+            return dutils.to_numpy_array_from_3D_list(res_set_list, [res_set.shape[0] , MX, 5])
 
         return res_set
 
 
-    def prepare_data(self, ip_memory = 25):
+    def prepare_data(self, ip_memory = 25, stack = True):
         """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
         With so callled vocab_size of ip_memory
 
@@ -127,62 +123,96 @@ class Piano_sFlat:
         Keyword Arguments:
             ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
         """
-        notes = self.pianoroll()
+        notes = self.flat_pianoroll()
         # print(self.to_str())
         data_in, data_out = [], []
-        tracks, notes_n, timediv = notes.shape
+        tracks, timediv, note_depth = notes.shape
         for t in range(tracks):
             le = timediv
             chunks_count = le // ip_memory + 1
+            data_in.append([])
+            data_out.append([])
             for i in range(chunks_count):
                 start, end = i * ip_memory , (i + 1) * ip_memory
                 buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
-                buffer = numpy.zeros((128, ip_memory))
-                buffer[:, :buf_size] = notes[t][:, start : start + buf_size]
-                data_in.append(buffer)
-                data_out.append((notes[t, :, end] if end < le else numpy.zeros((128))))
+                buffer = numpy.zeros((ip_memory, self.__DEPTH__))
+                buffer[:buf_size, :] = notes[t][start : start + buf_size, :]
+                data_in[t].append(buffer)
+                data_out[t].append((notes[t, end, :] if end < le else numpy.zeros((self.__DEPTH__))))
 
         # print(data_in)
         # print(data_out)
+        
         return numpy.array(data_in), numpy.array(data_out)
 
     @staticmethod
-    def to_midi(pianoroll): 
+    def to_midi(roll, depth = 5): 
         """Converts the pianoroll representation to midi object
         
         Arguments:
             pianoroll {[type]} -- [description]
         """
-        raise NotImplementedError("piano_sflat.to_midi not implemented yet.")
-        if type(pianoroll) == PianoRoll: pianoroll = pianoroll.roll
-        
-        track, notes_n, time_n = pianoroll.shape
-
+        # raise NotImplementedError("piano_sflat.to_midi not implemented yet.")
+        if type(roll) == Piano_sFlat: roll = roll.roll
+        print(roll.shape)
+        useless, time_n, track, notes_n, = roll.shape
+        roll = roll[0]
         mid = MIDI(track_count = track, empty = False) # Creating the empty MIDI object
-        on_note_set = set()
-        for t in range(track): # Iteratinf 0th axis, to specific track
-            delta_time = 0
-            for tim in range(1, time_n): # First iterating the 2 axis before 1nd, due to algo nature
-                first_bool = True
-                for nt in range(notes_n): #Iterating note axis  
-                    if first_bool and pianoroll[t, nt, tim] == 1 and pianoroll[t, nt, tim - 1] == 0: # pushing the first note with delta time == delta_time var, in that time slice which is on in current instance
+        # on_note_set = set()
+        # for t in range(track): # Iteratinf 0th axis, to specific track
+        #     delta_time = 0
+        #     for tim in range(1, time_n): # First iterating the 2 axis before 1nd, due to algo nature
+        #         first_bool = True
+        #         for nt in range(notes_n): #Iterating note axis  
+        #             noteval = int(roll[tim, t, nt])
+        #             if first_bool and roll[tim, t, nt] != 0 and roll[ tim - 1, t, nt] == 0: # pushing the first note with delta time == delta_time var, in that time slice which is on in current instance
                         
-                        mid.tracks[t].push_note(delta_time, nt, channel_no = 0, intensity = 0x50)
-                        delta_time = 0 #setting delta time(relative time) to zero
-                        first_bool = False
-                    elif pianoroll[t, nt, tim] == 1  and pianoroll[t, nt, tim - 1] == 0: # pushing other than first note with deltatime 0
-                        mid.tracks[t].push_note(0, nt, channel_no = 0, intensity = 0x50)
-                    elif pianoroll[t, nt, tim] == 0 and pianoroll[t, nt, tim - 1] == 1: #closing note trigger, closing the note
-                        mid.tracks[t].close_note(0, nt, channel_no = 0)
+        #                 mid.tracks[t].push_note(delta_time, noteval, channel_no = 0, intensity = 0x50)
+        #                 delta_time = 0 #setting delta time(relative time) to zero
+        #                 first_bool = False
+        #             elif roll[tim, t, nt] != 0  and roll[tim - 1, t, nt] == 0: # pushing other than first note with deltatime 0
+        #                 mid.tracks[t].push_note(0, noteval, channel_no = 0, intensity = 0x50)
+        #             elif roll[tim, t, nt] == 0 and roll[tim - 1, t, nt] != 0: #closing note trigger, closing the note
+        #                 mid.tracks[t].close_note(0, noteval, channel_no = 0)
 
-                    else: #do nothing pass
+        #             else: #do nothing pass
+        #                 pass
+
+        #         delta_time += 32 # Incrementing delta count, as if no first note instance played
+
+
+        # pass
+        for t in range(track):
+            del_tm = 0
+            # t_spread = copy.copy(roll[0, t, :])
+            t_spread = numpy.zeros(notes_n)
+            pr_noteval = 0
+            for tm in range(time_n - 1):
+                for n in range(notes_n) :
+                    noteval = int(roll[tm,t,n])
+                    ah_noteval = int(roll[tm + 1, t, n])
+                    if noteval < 20: continue
+                    # if tm > 100: continue
+                    # print("... ", t, n, noteval, ah_noteval)
+                    # print(t_spread)
+                    
+                    if noteval == ah_noteval and t_spread[n] == 0: #new ON State
+                        # print("pushing ", noteval)
+                        mid.tracks[t].push_note(dutils.note_length(del_tm), noteval, 0, 80)
+                        t_spread[n] = noteval
+                        del_tm = 0
+                    elif noteval != ah_noteval and t_spread[n] == noteval: # new OFF State:
+                        # print("closing ",dutils.note_length(del_tm), noteval)
+                        mid.tracks[t].close_note(dutils.note_length(del_tm), noteval, 0)
+                        t_spread[n] = 0
+                        del_tm = 0
+                    elif noteval == pr_noteval and t_spread[n] == 0:
                         pass
-
-                delta_time += 32 # Incrementing delta count, as if no first note instance played
-
-
-        pass
-
+                    elif noteval != pr_noteval and t_spread[n] != 0:
+                        pass
+                    
+                del_tm += 1
+            # print("++++++++++++++++++++++++++++============================") 
         return mid
 
     def to_str(self, res = None):

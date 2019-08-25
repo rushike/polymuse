@@ -1,3 +1,6 @@
+
+
+
 from rmidi import mutils
 from rmidi.MIDI import MIDI
 from rmidi.absolutemidi import AbsoluteMidi
@@ -6,6 +9,7 @@ from rmidi.dataset import config
 from rmidi.constant import meta_event_format
 
 from polymuse.dataset.constants import ZEROS_FIVE, NOTE_LENGTH 
+from polymuse.dataset import dutils
 
 import numpy, random
 
@@ -30,13 +34,16 @@ Returns:
 """
 
 class sFlat():
-
+    __DEPTH__ = 5
+    __SPREAD__ = 8
+    __TIME_LEN__ = 1
+    __TSPREAD__ = 6
     def __init__(self, midi, print_threshold = 25):
         self.midi = midi
         self.print_threshold = print_threshold
         self.roll = None
         # self.note_range = None
-        self.__DEPTH__ = 5
+        self.__DEPTH__ = sFlat.__DEPTH__
         self.track_range = None
         pass
     
@@ -51,7 +58,7 @@ class sFlat():
         
         self.track_range = [0, self.midi.track_count] if not track_range else track_range if not numpy.isscalar(track_range) else [track_range - 1, track_range]
 
-        LEN = 1000
+        LEN = 10000
         
         trackers = numpy.zeros(self.midi.track_count)
         track_anas = meta_event_format.X
@@ -89,6 +96,8 @@ class sFlat():
             for e in t.trk_event:
                 
                 if e.is_note_on_off_event():
+                    # if e.is_note_off_event(): continue
+                    if 0x8f < e.event_id < 0x90 or e.data[1] == 0: continue
                     noteval = e.data[0] 
                     # res_set[i][tp] = noteval
                     # tp += 1 
@@ -103,7 +112,7 @@ class sFlat():
                     if noteval >= N or dep >= self.__DEPTH__: continue
                     
                     
-                    dut = int(32 // mutils.nth_note(e.elength, tempo=tempo)) 
+                    dut = int(32 // mutils.nth_note(e.elength, tempo=tempo)) if mutils.nth_note(e.elength, tempo=tempo) != 0 else 0
                     prev_oucr = e.abstime
                     res_set[i][nit][dep] += noteval
                     # nit += dut
@@ -124,12 +133,91 @@ class sFlat():
                     booln = True
                 res_set_list.append(res_set_trk_list)
             MX = max([len(l) for l in res_set_list])
-
-            return to_numpy_array_from_3D_list(res_set_list, [res_set.shape[0] , MX, 5])
+            # print(res_set_list)
+            return dutils.to_numpy_array_from_3D_list(res_set_list, [res_set.shape[0] , MX, 5])
         return res_set
 
 
-    def flat_time(self):
+    def flat_time(self, track_range = None, trim = True, note_range = None):
+        if not isinstance(self.midi, AbsoluteMidi):
+            self.midi = AbsoluteMidi.to_abs_midi(self.midi)
+        
+        N = 128  
+        
+        self.note_range = [0, 128] if not note_range  else note_range 
+        
+        self.track_range = [0, self.midi.track_count] if not track_range else track_range if not numpy.isscalar(track_range) else [track_range - 1, track_range]
+
+        LEN = 10000
+        
+        trackers = numpy.zeros(self.midi.track_count)
+        track_anas = meta_event_format.X
+        res_set = numpy.zeros((self.midi.track_count, LEN, 1))
+        for i in range(self.track_range[0], self.track_range[1]):
+        
+            t = self.midi.tracks[i]
+            instrument = t.get_event('instrument_name', depth = 1)
+            try :
+                ttempo = t.get_event('set_tempo', depth = 1)
+                tempo = mutils.toint(ttempo[0].data, 8)
+                # tempo = ttempo
+            except IndexError:
+                #Occurs because set_tempo is not register in every track explicitly, usually in first track only and all track follows the same rhythm forward
+                #Considering the tempo_event in first track [0] , if there too error raised then tempo == 120 bpm
+                try:
+                    ttempo = self.midi.tracks[0].get_event('set_tempo', depth = 1)
+                    tempo = mutils.toint(ttempo[0].data, 8)
+                except IndexError:
+                    tempo = 500000
+                pass
+
+            """
+            >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+            """
+            nit = 0 #numpy array iterator
+            prev_oucr, dut, dep  = -1, 0, 0
+            dep = 0
+            for e in t.trk_event:
+                
+                if e.is_note_on_off_event():
+                    # if e.is_note_off_event(): continue
+                    if 0x8f < e.event_id < 0x90 or e.data[1] == 0: continue
+                    noteval = e.data[0] 
+
+                    #builting from here
+                    if prev_oucr == e.abstime: 
+                        dep += 1 # going to next note on same time instance
+                    else :
+                        dep = 0
+                        nit += 1 # going to next note instance
+
+                    noteval = e.data[0] - self.note_range[0]
+                    if noteval >= N or dep >= self.__DEPTH__: continue
+                    
+                    
+                    dut = int(32 // mutils.nth_note(e.elength, tempo=tempo)) if mutils.nth_note(e.elength, tempo=tempo) != 0 else 0
+                    prev_oucr = e.abstime
+                    res_set[i][nit][0] = dut
+
+
+        self.time = res_set
+    
+        if trim:
+            res_set_list = []
+            for i in range(res_set.shape[0]):
+                booln = False
+                res_set_trk_list = []
+                for n in range(res_set.shape[1]):
+                    if numpy.array_equal(res_set[i][n], [0]) and booln: continue
+                    
+                    res_set_trk_list.append(list(res_set[i][n]))
+                    booln = True
+                res_set_list.append(res_set_trk_list)
+            MX = max([len(l) for l in res_set_list])
+            # print(res_set_list)
+            return dutils.to_numpy_array_from_3D_list(res_set_list, [res_set.shape[0] , MX, 1])
+        return res_set
 
         pass
     
@@ -180,32 +268,120 @@ class sFlat():
         self.flat_roll = res_set
         return res_set
 
-    def prepare_data(self, ip_memory = 25):
+    def prepare_data(self, notes, track_range = None, ip_memory = 25):
+        return sFlat.prepare_data(self.flat_notes())
+    @staticmethod
+    def prepare_data(notes, track_range = None, ip_memory = 25):
         """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
         With so callled vocab_size of ip_memory
         
         Keyword Arguments:
             ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
         """
-        notes = self.flat_notes()
+        track_range = track_range if track_range else [0, 1]
+        # notes = self.flat_notes() if notes == None else notes
         data_in, data_out = [], []
-        for t in notes:
-            le = len(t)
+        for tr in range(track_range[1] - track_range[0]):
+            # trk = tr - track_range[0]
+            nt = notes[tr]
+            data_in.append([])
+            data_out.append([])
+            lent = len(notes[tr])
+            # for j in range(lent):
+            le = len(nt)
+            
             chunks_count = le // ip_memory + 1
-            for i in range(chunks_count):
-                start, end = i * ip_memory , (i + 1) * ip_memory
+            # for i in range(chunks_count):                #two consecutive chunks have no notes common, two line in group
+            #     start, end = i * ip_memory , (i + 1) * ip_memory
+            for i in range(le - ip_memory):
+                start, end = i, i + ip_memory
                 buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
-                buffer = numpy.zeros((ip_memory, self.__DEPTH__))
-                buffer[:buf_size, :] = t[start : start + buf_size]
-                data_in.append(buffer)
+                buffer = numpy.zeros((ip_memory, sFlat.__DEPTH__))
+                buffer[:buf_size, :] = nt[start : start + buf_size]
+                data_in[tr].append(buffer)
                 # print(t[end])
-                data_out.append((t[end] if end < le else notes[0][0]))
-        # print(data_in)
-        # print(data_out)
+                data_out[tr].append((nt[end] if end < le else notes[0][0]))
+        
+        if track_range[1]- track_range[0] == 1: #is scalar, no track
+            data_in, data_out = data_in[0], data_out[0]
         return numpy.array(data_in), numpy.array(data_out)
         
     @staticmethod
-    def to_midi(sflatroll): 
+    def prepare_data_3D(notes, track_range = None, ip_memory = 25):
+        """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
+        With so callled vocab_size of ip_memory
+        
+        Keyword Arguments:
+            ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
+        """
+        track_range = track_range if track_range else [0, 1]
+        print("SHHHHHHHHHHSHSHSHHSHHS L ", notes.shape)
+        # notes = self.flat_notes() if notes == None else notes
+        data_in, data_out = [], []
+        for tr in range(track_range[1] - track_range[0]):
+            # trk = tr - track_range[0]
+            nt = notes[tr]
+            data_in.append([])
+            data_out.append([])
+            lent = len(notes[tr])
+            # for j in range(lent):
+            le = len(nt)
+                
+            chunks_count = le // ip_memory + 1
+            # for i in range(chunks_count):                #two consecutive chunks have no notes common, two line in group
+            #     start, end = i * ip_memory , (i + 1) * ip_memory
+            for i in range(le - ip_memory):
+                start, end = i, i + ip_memory
+                buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
+                buffer = numpy.zeros((ip_memory, sFlat.__DEPTH__, sFlat.__SPREAD__))
+                buffer[:buf_size, :] = nt[start : start + buf_size]
+                data_in[tr].append(buffer)
+                # print(t[end])
+                data_out[tr].append((nt[end] if end < le else notes[0][0]))
+            
+        if track_range[1]- track_range[0] == 1: #is scalar, no track
+            data_in, data_out = data_in[0], data_out[0]
+        return numpy.array(data_in), numpy.array(data_out)
+
+    @staticmethod
+    def prepare_data_time(notes, track_range = None, ip_memory = 25):
+        """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
+        With so callled vocab_size of ip_memory
+        
+        Keyword Arguments:
+            ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
+        """
+        track_range = track_range if track_range else [0, 1]
+        print("time ", notes.shape)
+        # notes = self.flat_notes() if notes == None else notes
+        data_in, data_out = [], []
+        for tr in range(track_range[1] - track_range[0]):
+            # trk = tr - track_range[0]
+            nt = notes[tr]
+            data_in.append([])
+            data_out.append([])
+            lent = len(notes[tr])
+            # for j in range(lent):
+            le = len(nt)
+                
+            chunks_count = le // ip_memory + 1
+            # for i in range(chunks_count):                #two consecutive chunks have no notes common, two line in group
+            #     start, end = i * ip_memory , (i + 1) * ip_memory
+            for i in range(le - ip_memory):
+                start, end = i, i + ip_memory
+                buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
+                buffer = numpy.zeros((ip_memory, sFlat.__TIME_LEN__, sFlat.__TSPREAD__))
+                buffer[:buf_size, :] = nt[start : start + buf_size]
+                data_in[tr].append(buffer)
+                # print(t[end])
+                data_out[tr].append((nt[end] if end < le else notes[0][0]))
+            
+        if track_range[1]- track_range[0] == 1: #is scalar, no track
+            data_in, data_out = data_in[0], data_out[0]
+        return numpy.array(data_in), numpy.array(data_out)
+        
+    @staticmethod
+    def to_midi(sflatroll, time_ins = 0): 
         """Converts the pianoroll representation to midi object
         
         Arguments:
@@ -221,7 +397,7 @@ class sFlat():
             delta_time = 0
             for tim in range(1, time_n): # First iterating the 2 axis before 1nd, due to algo nature
                 first_bool = True
-                n_length = random.choice(NOTE_LENGTH)
+                n_length = random.choice(NOTE_LENGTH) if not numpy.isscalar(time_ins) else time_ins[tim]
                 for nt in range(notes_depth): #Iterating on note axis and pushing the event 
                     noteval = int(sflatroll[t][tim][nt])
                     if noteval == 0: break
@@ -291,16 +467,3 @@ class sFlat():
             return p_str
         except Exception: return None
 
-def to_numpy_array_from_3D_list(listn, shape = [3, 1000, 5], depth = 1):
-    # if depth == 0:
-    # le = len(listn)
-    print(shape)
-    res = numpy.zeros(shape)
-    for i in range(shape[0]):
-        le = len(listn[i])
-        for j in range(shape[1]):
-            if j >= le: break
-            for k in range(shape[2]):    
-                res[i, j , k] = listn[i][j][k]
-
-    return res

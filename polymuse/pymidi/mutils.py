@@ -9,6 +9,9 @@ def find(dictn, value, depth = 0):
             return find(v, value, depth - 1)
         else : raise ValueError("Value not found in the nested dictionary")
 
+def note_length(note_len, resolution = 32):
+    return resolution / note_len
+
 def to_numpy_array_from_3D_list(listn, shape = [3, le, 5], depth = 1):
     # if depth == 0:
     # le = len(listn)
