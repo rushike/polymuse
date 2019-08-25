@@ -272,7 +272,6 @@ class sFlat():
         return sFlat.prepare_data(self.flat_notes())
     @staticmethod
     def prepare_data(notes, track_range = None, ip_memory = 25):
-<<<<<<< HEAD
         """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
         With so callled vocab_size of ip_memory
         
@@ -308,99 +307,6 @@ class sFlat():
         return numpy.array(data_in), numpy.array(data_out)
         
     @staticmethod
-    def prepare_data_3D(notes, track_range = None, ip_memory = 25):
-        """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
-        With so callled vocab_size of ip_memory
-        
-        Keyword Arguments:
-            ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
-        """
-        track_range = track_range if track_range else [0, 1]
-        print("SHHHHHHHHHHSHSHSHHSHHS L ", notes.shape)
-        # notes = self.flat_notes() if notes == None else notes
-        data_in, data_out = [], []
-        for tr in range(track_range[1] - track_range[0]):
-            # trk = tr - track_range[0]
-            nt = notes[tr]
-            data_in.append([])
-            data_out.append([])
-            lent = len(notes[tr])
-            # for j in range(lent):
-            le = len(nt)
-                
-            chunks_count = le // ip_memory + 1
-            # for i in range(chunks_count):                #two consecutive chunks have no notes common, two line in group
-            #     start, end = i * ip_memory , (i + 1) * ip_memory
-            for i in range(le - ip_memory):
-                start, end = i, i + ip_memory
-                buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
-                buffer = numpy.zeros((ip_memory, sFlat.__DEPTH__, sFlat.__SPREAD__))
-                buffer[:buf_size, :] = nt[start : start + buf_size]
-                data_in[tr].append(buffer)
-                # print(t[end])
-                data_out[tr].append((nt[end] if end < le else notes[0][0]))
-            
-        if track_range[1]- track_range[0] == 1: #is scalar, no track
-            data_in, data_out = data_in[0], data_out[0]
-        return numpy.array(data_in), numpy.array(data_out)
-
-    @staticmethod
-    def prepare_data_time(notes, track_range = None, ip_memory = 25):
-=======
->>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
-        """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
-        With so callled vocab_size of ip_memory
-        
-        Keyword Arguments:
-            ip_memory {int} -- memory or ipsize used in predicting next (default: {25})
-        """
-        track_range = track_range if track_range else [0, 1]
-<<<<<<< HEAD
-        print("time ", notes.shape)
-=======
->>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
-        # notes = self.flat_notes() if notes == None else notes
-        data_in, data_out = [], []
-        for tr in range(track_range[1] - track_range[0]):
-            # trk = tr - track_range[0]
-            nt = notes[tr]
-            data_in.append([])
-            data_out.append([])
-            lent = len(notes[tr])
-            # for j in range(lent):
-            le = len(nt)
-<<<<<<< HEAD
-                
-=======
-            
->>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
-            chunks_count = le // ip_memory + 1
-            # for i in range(chunks_count):                #two consecutive chunks have no notes common, two line in group
-            #     start, end = i * ip_memory , (i + 1) * ip_memory
-            for i in range(le - ip_memory):
-                start, end = i, i + ip_memory
-                buf_size = ip_memory if end < le else le -  start # only reason due to logic below else not needed
-<<<<<<< HEAD
-                buffer = numpy.zeros((ip_memory, sFlat.__TIME_LEN__, sFlat.__TSPREAD__))
-=======
-                buffer = numpy.zeros((ip_memory, sFlat.__DEPTH__))
->>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
-                buffer[:buf_size, :] = nt[start : start + buf_size]
-                data_in[tr].append(buffer)
-                # print(t[end])
-                data_out[tr].append((nt[end] if end < le else notes[0][0]))
-<<<<<<< HEAD
-            
-=======
-        
->>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
-        if track_range[1]- track_range[0] == 1: #is scalar, no track
-            data_in, data_out = data_in[0], data_out[0]
-        return numpy.array(data_in), numpy.array(data_out)
-        
-    @staticmethod
-<<<<<<< HEAD
-=======
     def prepare_data_3D(notes, track_range = None, ip_memory = 25):
         """Prepares data for the network(RNN) in ip/op format. Here called data_in, data_out.
         With so callled vocab_size of ip_memory
@@ -475,7 +381,6 @@ class sFlat():
         return numpy.array(data_in), numpy.array(data_out)
         
     @staticmethod
->>>>>>> 8f3effa5b00e12eb9a6d4c5b56078eea8c4cc543
     def to_midi(sflatroll, time_ins = 0): 
         """Converts the pianoroll representation to midi object
         
