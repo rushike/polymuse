@@ -4,6 +4,14 @@ from rmidi import mutils
 from polymuse.dataset import piano_roll, constants
 from polymuse.dataset import flat, sflat, piano_sflat, dutils
 from polymuse.player import rnn_player
+from polymuse.dataset import flat, sflat, piano_sflat
+# from polymuse.player import rnn_player
+
+# from sklearn.model_selection import train_test_split
+
+# from polymuse.deep_net import rnn
+# import polymuse.net.rnn
+import numpy, random, sys
 
 # from sklearn.model_selection import train_test_split
 
@@ -272,32 +280,35 @@ xn = roll.flat_notes()
 dataset = roll_mat
 # dataset = numpy.array([dataset])
 
-dataset = dutils.to_3D_bin(dataset, 6)
+# dataset = dutils.to_3D_bin(dataset, 6)
+sflat.sFlat.__TSPREAD__ = 64
+dataset = dutils.one_hot(dataset, sflat.sFlat.__TSPREAD__)
 xn = dutils.to_3D_bin(xn, 8)
-# print(dataset)
+print(dataset[0, : 3])
 print(dataset.shape)
 dataset = dataset[:, :, :1]
 xn = xn[:, :, :1]
 xn = numpy.zeros(xn.shape)
+
 sflat.sFlat.__DEPTH__ = 1
 
 
-x, y = sflat.sFlat.prepare_data_time(notes = dataset, ip_memory = 100)
+x, y = sflat.sFlat.prepare_data_time(notes = dataset, ip_memory = 50)
 x_notes, y_notes = sflat.sFlat.prepare_data_3D(notes = xn, ip_memory = 100)
 # print(x,'\n', y)
 print(x.shape, y.shape)
 
 model_notes_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_ex_512_m_one_note_100___b_30_e_50_d_0.3.h5" #model path
-model_time_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\\gpu_time_512_m_one_time_100___b_30_e_50_d_0.6.h5"
+model_time_path = "F:\\rushikesh\\project\\polymuse\\polymuse\\deep_net\\history\gpu_time_512_m_one_time_one_hot_100_adam___b_30_e_50_d_0.3.h5"
 epochs = 50
 
 batch_size = 30
-dropout = 0.6
+dropout = 0.3
 cell_count = 512
 
-model_name = 'one_time_100_'
+model_name = 'one_time_one_hot_100_adam_'
 
-model_path = './polymuse/deep_net/history/gpu_time_' +  str(cell_count) + '_m_' + model_name +'__b_' + str(batch_size) + "_e_"+str(epochs) + "_d_" + str(dropout)  + ".h5"
+# model_path = './polymuse/deep_net/history/gpu_time_' +  str(cell_count) + '_m_' + model_name +'__b_' + str(batch_size) + "_e_"+str(epochs) + "_d_" + str(dropout)  + ".h5"
 
 # model = rnn.time_model_sFlat(x, y, model_name, cell_count = cell_count, epochs = epochs, batch_size = batch_size, dropout = dropout)
 
@@ -310,15 +321,15 @@ res_notes, res_time = rnn_player.rsingle_note_time_play(x_notes[0], x[0], model_
 print("OUT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 print("time_output shape : ", res_time.shape)
 res_notes = dutils.rev_bin_3D(res_notes, 8)
-
-res_time = dutils.rev_bin_3D(res_time, 6)
-
+# res_notes = numpy.reshape(res_notes, res_notes.shape + (1, ))
+res_time = dutils.rev_one_hot(res_time)
+res_time = numpy.reshape(res_time, res_time.shape[:-1])
 print("RES_NOTES SHAPE : ", res_notes.shape)
 print("RES_TIME SHAPE : ", res_time.shape)
 
-print('RES NOTES ---------------------------------------------\n', res_notes[0, 95 : 145])
+print('RES NOTES ---------------------------------------------\n', res_notes[0, 95 : 105])
 
-print('RES TIME ---------------------------------------------\n', res_time[0, 95 : 145])
+print('RES TIME ---------------------------------------------\n', res_time[0, 95 : 105])
 
 # res = numpy.round(res)
 
@@ -337,3 +348,19 @@ mid.create_file(model_name + "2_ex_" + str(cell_count) + "_e_"  + str(epochs) + 
 # # # 
 
 
+"""
+
+one _ hot encoding
+
+"""
+
+# y =  [[[9], [8], [5], [3], [1]],
+#      [[1], [8], [1], [1], [1]]]
+
+# yn = dutils.one_hot(y, 10)
+
+# print(yn)
+
+# ynr = dutils.rev_one_hot(yn)
+
+# print(ynr)
